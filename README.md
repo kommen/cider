@@ -83,7 +83,8 @@ After you get your nREPL server running go back to Emacs.  Typing there <kbd>M-x
 `cider-connect` will allow you to connect to the running nREPL server.
 
 In Clojure(Script) buffers the command `cider-connect` is bound to
-<kbd>C-c C-x (C-)c (C-)c</kbd>.
+<kbd>C-c C-x (C-)c (C-)j</kbd> and the command `cider-connect-cljs` is bound to
+<kbd>C-c C-x (C-)c (C-)s</kbd>.
 
 ## Diving Deeper
 
@@ -244,13 +245,13 @@ site. [[Become a sponsor](https://opencollective.com/cider#sponsor)]
 
 ## License
 
-Copyright © 2012-2018 Tim King, Phil Hagelberg, Bozhidar Batsov, Artur Malabarba and
+Copyright © 2012-2019 Tim King, Phil Hagelberg, Bozhidar Batsov, Artur Malabarba and
 [contributors](https://github.com/clojure-emacs/cider/contributors).
 
 Distributed under the GNU General Public License, version 3
 
 [badge-license]: https://img.shields.io/badge/license-GPL_3-green.svg
-[nREPL]:https://github.com/cemerick/nREPL
+[nREPL]:https://github.com/nrepl/nrepl
 [Sly]: https://github.com/capitaomorte/sly
 [Geiser]: https://github.com/jaor/geiser
 [clojure-mode]: https://github.com/clojure-emacs/clojure-mode

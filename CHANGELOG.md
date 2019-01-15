@@ -2,6 +2,28 @@
 
 ## master (unreleased)
 
+## 0.20.0 (2019-01-14)
+
+### New features
+
+* Make it possible to pass an options map to the currently selected pprint function via `cider-pprint-options`.
+* Add support for zprint.
+* Make it possible to eval and pprint in the scratch buffer using `C-u C-j`.
+* [#2532](https://github.com/clojure-emacs/cider/pull/2532): Add support for `CompilationException` dynamic source location discovery.
+
+### Changes
+
+* [#2496](https://github.com/clojure-emacs/cider/issues/2496): Replace CIDER's pprint implementation with nREPL 0.5's built-in pprint support.
+* [#2558](https://github.com/clojure-emacs/cider/pull/2558): Load clj, cljc, & cljs (if cljs repl available) files on `cider-load-all-files` (`C-c C-M-l`). Previously, this only loaded clj files.
+* Enable pretty-printing in the REPL by default.
+
+### Bug fixes
+
+* [#2532](https://github.com/clojure-emacs/cider/pull/2532): Fix re-display hangs while dynamically recovering source locations under mouse pointer.
+* [#2560](https://github.com/clojure-emacs/cider/pull/2560): Detect REPL type for completion, eldoc and info ops.
+
+## 0.19.0 (2019-01-01)
+
 ### New features
 
 * [#2430](https://github.com/clojure-emacs/cider/issues/2375): `cider-find-var` opens archive files inside [AVFS](http://avf.sourceforge.net) folders if AVFS is detected.
@@ -22,6 +44,8 @@
 * Fix jack-in from inside of remote buffers.
 * [#2454](https://github.com/clojure-emacs/cider/pull/2454): Fix erratic inspector behavior when multiple REPLs are connected
 * [#2467](https://github.com/clojure-emacs/cider/pull/2467): Make generic CIDER ops use any available nREPL connection.
+* [#2105](https://github.com/clojure-emacs/cider/issues/2105): Fix no comment syntax defined message when loading buffer after running a failing test.
+* [#2115](https://github.com/clojure-emacs/cider/issues/2515): Reset the current buffer after `display-buffer`.
 
 ### Changes
 
@@ -32,10 +56,8 @@
 
 * [#2484](https://github.com/clojure-emacs/cider/pull/2484): REPL types are now symbols instead of strings
 * [#2484](https://github.com/clojure-emacs/cider/pull/2484): Fix issues where some functionality in REPL buffers (like eldoc) was broken.
-
-### Changes
-
 * [#2484](https://github.com/clojure-emacs/cider/pull/2484): REPL types are now symbols instead of strings.
+* [#1544](https://github.com/clojure-emacs/cider/issues/1544): Add a new defcustom `cider-infer-remote-nrepl-ports` to control whether we use tramp/ssh to infer remote ports.  Now defaulting to `nil` (previously it always tried to infer).
 
 ## 0.18.0 (2018-09-02)
 

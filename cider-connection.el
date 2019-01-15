@@ -1,6 +1,6 @@
 ;;; cider-connection.el --- Connection and session life-cycle management for CIDER -*- lexical-binding: t -*-
 ;;
-;; Copyright © 2018 Artur Malabarba, Bozhidar Batsov, Vitalie Spinu and CIDER contributors
+;; Copyright © 2019 Artur Malabarba, Bozhidar Batsov, Vitalie Spinu and CIDER contributors
 ;;
 ;; Author: Artur Malabarba <bruce.connor.am@gmail.com>
 ;;         Bozhidar Batsov <bozhidar@batsov.com>
@@ -66,7 +66,7 @@ available) and the matching REPL buffer."
   :safe #'booleanp
   :package-version '(cider . "0.9.0"))
 
-(defconst cider-required-nrepl-version "0.2.12"
+(defconst cider-required-nrepl-version "0.4.4"
   "The minimum nREPL version that's known to work properly with CIDER.")
 
 
@@ -798,7 +798,10 @@ session."
                    (:auto (if (eq cur-type 'multi)
                               '(clj cljs)
                             cur-type))))
-           (repls (cider-repls type 'ensure)))
+           (ensure (cl-case which
+                     (:auto nil)
+                     (t 'ensure)))
+           (repls (cider-repls type ensure)))
       (mapcar function repls))))
 
 ;; REPLs double as connections in CIDER, so it's useful to be able to refer to

@@ -1,8 +1,10 @@
+# Hacking on CIDER
+
 This section explains the process of working with CIDER's codebase (e.g. to fix
 a bug or implement some new feature). It outlines the recommended workflows when
 working on the Emacs Lisp side (CIDER) and the Clojure side (`cider-nrepl`).
 
-## Hacking on CIDER
+## Hacking on CIDER (Elisp)
 
 ### Obtaining the source code
 
@@ -30,9 +32,10 @@ Then:
 ```el
 ;; load CIDER from its source code
 (add-to-list 'load-path "~/projects/cider")
-(require 'cider)
-(require 'cider-autoloads)
+(load "cider-autoloads" t t)
 ```
+
+If you want to compile **and** generate autoloads, just run `make`.
 
 ### Changing the code
 
@@ -159,7 +162,7 @@ repository. The `evm` tool is available should you need to install some other
 specific build. However additional versions of Emacs will be discarded when
 you exit the docker container.
 
-## Hacking on cider-nrepl
+## Hacking on cider-nrepl (Clojure)
 
 ### Obtaining the code
 

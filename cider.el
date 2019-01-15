@@ -1,7 +1,7 @@
 ;;; cider.el --- Clojure Interactive Development Environment that Rocks -*- lexical-binding: t -*-
 
 ;; Copyright © 2012-2013 Tim King, Phil Hagelberg, Bozhidar Batsov
-;; Copyright © 2013-2018 Bozhidar Batsov, Artur Malabarba and CIDER contributors
+;; Copyright © 2013-2019 Bozhidar Batsov, Artur Malabarba and CIDER contributors
 ;;
 ;; Author: Tim King <kingtim@gmail.com>
 ;;         Phil Hagelberg <technomancy@gmail.com>
@@ -11,7 +11,7 @@
 ;;         Steve Purcell <steve@sanityinc.com>
 ;; Maintainer: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: http://www.github.com/clojure-emacs/cider
-;; Version: 0.19.0-snapshot
+;; Version: 0.20.0
 ;; Package-Requires: ((emacs "25") (clojure-mode "5.9") (pkg-info "0.4") (queue "0.2") (spinner "1.7") (seq "2.16") (sesman "0.3.2"))
 ;; Keywords: languages, clojure, cider
 
@@ -86,12 +86,12 @@
 (require 'seq)
 (require 'sesman)
 
-(defconst cider-version "0.19.0-snapshot"
+(defconst cider-version "0.20.0"
   "Fallback version used when it cannot be extracted automatically.
 Normally it won't be used, unless `pkg-info' fails to extract the
 version from the CIDER package or library.")
 
-(defconst cider-codename "Saigon"
+(defconst cider-codename "Oslo"
   "Codename used to denote stable releases.")
 
 (defcustom cider-lein-command
@@ -377,7 +377,7 @@ Throws an error if PROJECT-TYPE is unknown."
 ;; We inject the newest known version of nREPL just in case
 ;; your version of Boot or Leiningen is bundling an older one.
 (cider-add-to-alist 'cider-jack-in-dependencies
-                    "nrepl" "0.4.5")
+                    "nrepl" "0.5.3")
 
 (defvar cider-jack-in-cljs-dependencies nil
   "List of dependencies where elements are lists of artifact name and version.
@@ -389,8 +389,6 @@ Added to `cider-jack-in-dependencies' when doing `cider-jack-in-cljs'.")
   "List of exclusions for jack in dependencies.
 Elements of the list are artifact name and list of exclusions to apply for the artifact.")
 (put 'cider-jack-in-dependencies-exclusions 'risky-local-variable t)
-(cider-add-to-alist 'cider-jack-in-dependencies-exclusions
-                    "org.clojure/tools.nrepl" '("org.clojure/clojure"))
 
 (defconst cider-clojure-artifact-id "org.clojure/clojure"
   "Artifact identifier for Clojure.")
@@ -401,10 +399,10 @@ Elements of the list are artifact name and list of exclusions to apply for the a
 (defconst cider-latest-clojure-version "1.10.0"
   "Latest supported version of Clojure.")
 
-(defconst cider-required-middleware-version "0.18.0"
+(defconst cider-required-middleware-version "0.20.0"
   "The minimum CIDER nREPL version that's known to work properly with CIDER.")
 
-(defconst cider-latest-middleware-version "0.19.0-SNAPSHOT"
+(defconst cider-latest-middleware-version "0.20.0"
   "The latest CIDER nREPL version that's known to work properly with CIDER.")
 
 (defcustom cider-jack-in-auto-inject-clojure nil
@@ -606,7 +604,7 @@ See also `cider-jack-in-auto-inject-clojure'."
 These are set in `cider-jack-in-dependencies', `cider-jack-in-lein-plugins' and
 `cider-jack-in-nrepl-middlewares' are injected from the CLI according to
 the used PROJECT-TYPE.  Eliminates the need for hacking profiles.clj or the
-boot script for supporting cider with its nREPL middleware and
+boot script for supporting CIDER with its nREPL middleware and
 dependencies."
   (pcase project-type
     ('lein (cider-lein-jack-in-dependencies
@@ -1327,6 +1325,12 @@ Tramp version starting 26.1 is using a `cl-defstruct' rather than vanilla VEC."
       (make-tramp-file-name :method (elt vec 0)
                             :host   (elt vec 2)))))
 
+(defcustom cider-infer-remote-nrepl-ports nil
+  "When true, cider will use ssh to try to infer nREPL ports on remote hosts."
+  :type 'boolean
+  :safe #'booleanp
+  :package-version '(cider . "0.19.0"))
+
 (defun cider--infer-ports (host ssh-hosts)
   "Infer nREPL ports on HOST.
 Return a list of elements of the form (directory port).  SSH-HOSTS is a list
@@ -1338,14 +1342,15 @@ of remote SSH hosts."
         (let* ((change-dir-p (file-remote-p default-directory))
                (default-directory (if change-dir-p "~/" default-directory)))
           (cider-locate-running-nrepl-ports (unless change-dir-p default-directory)))
-      (let ((vec (vector "sshx" nil host "" nil))
-            ;; change dir: user might want to connect to a different remote
-            (dir (when (file-remote-p default-directory)
-                   (with-parsed-tramp-file-name default-directory cur
-                     (when (string= cur-host host) default-directory)))))
-        (tramp-maybe-open-connection (cider--tramp-file-name vec))
-        (with-current-buffer (tramp-get-connection-buffer (cider--tramp-file-name vec))
-          (cider-locate-running-nrepl-ports dir))))))
+      (when cider-infer-remote-nrepl-ports
+        (let ((vec (vector "sshx" nil host "" nil))
+              ;; change dir: user might want to connect to a different remote
+              (dir (when (file-remote-p default-directory)
+                     (with-parsed-tramp-file-name default-directory cur
+                       (when (string= cur-host host) default-directory)))))
+          (tramp-maybe-open-connection (cider--tramp-file-name vec))
+          (with-current-buffer (tramp-get-connection-buffer (cider--tramp-file-name vec))
+            (cider-locate-running-nrepl-ports dir)))))))
 
 (defun cider--completing-read-port (host ports)
   "Interactively select port for HOST from PORTS."
@@ -1387,7 +1392,8 @@ PROJECT-DIR defaults to current project."
                         (boot        . "build.boot")
                         (clojure-cli . "deps.edn")
                         (shadow-cljs . "shadow-cljs.edn")
-                        (gradle      . "build.gradle"))))
+                        (gradle      . "build.gradle")
+                        (gradle      . "build.gradle.kts"))))
     (delq nil
           (mapcar (lambda (candidate)
                     (when (file-exists-p (cdr candidate))

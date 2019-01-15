@@ -1,6 +1,6 @@
 ;;; cider-client.el --- A layer of abstraction above low-level nREPL client code. -*- lexical-binding: t -*-
 
-;; Copyright © 2013-2018 Bozhidar Batsov
+;; Copyright © 2013-2019 Bozhidar Batsov
 ;;
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 
@@ -208,36 +208,81 @@ faster than \\=`clojure.core/pprint\\=` (this is the default)
 `puget' - to use Puget, which provides canonical serialization of data on
 top of fipp, but at a slight performance cost
 
-Alternatively, can be the namespace-qualified name of a Clojure function of
-one argument.  If the function cannot be resolved, an exception will be
-thrown.
+`zprint' - to use zprint, a fast and flexible alternative to the libraries
+mentioned above.
 
-The function is assumed to respect the contract of \\=`clojure.pprint/pprint\\=`
-with respect to the bound values of \\=`*print-length*\\=`, \\=`*print-level*\\=`,
-\\=`*print-meta*\\=`, and \\=`clojure.pprint/*print-right-margin*\\=`."
+Alternatively, can be the namespace-qualified name of a Clojure function of
+two arguments - an object to print and an options map.  The options map will
+have string keys.  If the function
+cannot be resolved, an exception will be thrown.
+
+The function should ideally have a two-arity variant that accepts the
+object to print and a map of configuration options for the printer.  See
+`cider-pprint-options' for details.
+
+The function is also assumed to respect the contract of
+\\=`clojure.pprint/pprint\\=` with respect to the bound values of
+\\=`*print-length*\\=`, \\=`*print-level*\\=`, \\=`*print-meta*\\=`, and
+\\=`clojure.pprint/*print-right-margin*\\=`.  Those would normally serve as
+fallback values when a map of print options is not supplied explicitly."
   :type '(choice (const pprint)
                  (const fipp)
                  (const puget)
+                 (const zprint)
                  string)
   :group 'cider
   :package-version '(cider . "0.11.0"))
 
+(defcustom cider-pprint-options nil
+  "A list of options for the pretty-printer that will be converted to a map.
+Note that map can only have string keys, so the printer functions should be
+able to handle those.  Here's an example for `pprint':
+
+  '(dict \"length\" 50 \"right-margin\" 70)"
+  :type 'list
+  :group 'cider
+  :package-version '(cider . "0.20.0"))
+
 (defun cider--pprint-fn ()
   "Return the value to send in the pprint-fn slot of messages."
   (pcase cider-pprint-fn
-    (`pprint "clojure.pprint/pprint")
-    (`fipp "cider.nrepl.middleware.pprint/fipp-pprint")
-    (`puget "cider.nrepl.middleware.pprint/puget-pprint")
+    (`pprint "cider.nrepl.pprint/pprint")
+    (`fipp "cider.nrepl.pprint/fipp-pprint")
+    (`puget "cider.nrepl.pprint/puget-pprint")
+    (`zprint "zprint.core/zprint-str")
     (_ cider-pprint-fn)))
+
+(defvar cider--pprint-options-mapping
+  '((right-margin
+     ((fipp . width) (puget . width) (zprint . width)))
+    (length
+     ((fipp . print-length) (puget . print-length) (zprint . max-length)))
+    (level
+     ((fipp . print-level) (puget . print-level) (zprint . max-depth))))
+  "A mapping of print option for the various supported print engines.")
+
+(defun cider--pprint-option (name printer)
+  "Covert the generic NAME to its PRINTER specific variant.
+E.g. pprint's right-margin would become width for fipp.
+The function is useful when you want to generate dynamically
+print options.
+
+NAME can be a string or a symbol.  PRINTER has to be a symbol.
+The result will be a string."
+  (let* ((name (cider-maybe-intern name))
+         (result (cdr (assoc printer (cadr (assoc name cider--pprint-options-mapping))))))
+    (symbol-name (or result name))))
 
 (defun cider--nrepl-pprint-request-plist (right-margin &optional pprint-fn)
   "Plist to be appended to an eval request to make it use pprint.
 PPRINT-FN is the name of the Clojure function to use.
 RIGHT-MARGIN specifies the maximum column-width of the pretty-printed
 result, and is included in the request if non-nil."
-  (nconc `("pprint" "true"
-           "pprint-fn" ,(or pprint-fn (cider--pprint-fn)))
-         (and right-margin `("print-right-margin" ,right-margin))))
+  (let* ((print-options (or cider-pprint-options (nrepl-dict))))
+    (when right-margin
+      (setq print-options (nrepl-dict-put print-options (cider--pprint-option "right-margin" cider-pprint-fn) right-margin)))
+    (nconc `("printer" ,(or pprint-fn (cider--pprint-fn)))
+           (and (not (nrepl-dict-empty-p print-options)) `("print-options" ,print-options)))))
 
 (defun cider--nrepl-content-type-plist ()
   "Plist to be appended to an eval request to make it use content-types."
@@ -368,7 +413,7 @@ is nil, use `cider-load-file-handler'."
 ;;; Sync Requests
 
 (defcustom cider-filtered-namespaces-regexps
-  '("^cider.nrepl" "^refactor-nrepl" "^clojure.tools.nrepl" "^nrepl")
+  '("^cider.nrepl" "^refactor-nrepl" "^nrepl")
   "List of regexps used to filter out some vars/symbols/namespaces.
 When nil, nothing is filtered out.  Otherwise, all namespaces matching any
 regexp from this list are dropped out of the \"ns-list\" op.  Also,
@@ -413,7 +458,8 @@ CONTEXT represents a completion context for compliment."
                                     "ns" ,(cider-current-ns)
                                     "symbol" ,str
                                     "context" ,context)
-                      (cider-nrepl-send-sync-request nil 'abort-on-input))))
+                      (cider-nrepl-send-sync-request (cider-current-repl)
+                                                     'abort-on-input))))
     (nrepl-dict-get dict "completions")))
 
 (defun cider-sync-request:complete-flush-caches ()
@@ -429,7 +475,7 @@ CONTEXT represents a completion context for compliment."
                                   ,@(when symbol `("symbol" ,symbol))
                                   ,@(when class `("class" ,class))
                                   ,@(when member `("member" ,member)))
-                    (cider-nrepl-send-sync-request))))
+                    (cider-nrepl-send-sync-request (cider-current-repl)))))
     (if (member "no-info" (nrepl-dict-get var-info "status"))
         nil
       var-info)))
@@ -441,7 +487,8 @@ CONTEXT represents a completion context for compliment."
                                      ,@(when symbol `("symbol" ,symbol))
                                      ,@(when class `("class" ,class))
                                      ,@(when member `("member" ,member)))
-                       (cider-nrepl-send-sync-request nil 'abort-on-input))))
+                       (cider-nrepl-send-sync-request (cider-current-repl)
+                                                      'abort-on-input))))
     (if (member "no-eldoc" (nrepl-dict-get eldoc "status"))
         nil
       eldoc)))

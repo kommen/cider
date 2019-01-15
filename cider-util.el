@@ -1,7 +1,7 @@
 ;; cider-util.el --- Common utility functions that don't belong anywhere else -*- lexical-binding: t -*-
 
 ;; Copyright © 2012-2013 Tim King, Phil Hagelberg, Bozhidar Batsov
-;; Copyright © 2013-2018 Bozhidar Batsov, Artur Malabarba and CIDER contributors
+;; Copyright © 2013-2019 Bozhidar Batsov, Artur Malabarba and CIDER contributors
 ;;
 ;; Author: Tim King <kingtim@gmail.com>
 ;;         Phil Hagelberg <technomancy@gmail.com>
@@ -655,6 +655,8 @@ through a stack of help buffers.  Variables `help-back-label' and
     "The only thing worse than a rebel without a cause is a REPL without a clause."
     "In the absence of parentheses, chaos prevails."
     "One REPL to rule them all, One REPL to find them, One REPL to bring them all, and in parentheses bind them!"
+    "A blank REPL promotes creativity."
+    "A blank REPL is infinitely better than a blank cheque."
     ,(format "%s, I've a feeling we're not in Kansas anymore."
              (cider-user-first-name))
     ,(format "%s, this could be the start of a beautiful program."
