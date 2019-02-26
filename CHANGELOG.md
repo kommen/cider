@@ -2,6 +2,42 @@
 
 ## master (unreleased)
 
+### Bug fixes
+
+* Stop cursor moving when initialising the CIDER REPL, when `cider-repl-pop-to-buffer-on-connect` is nil. This fixes a bug introduced by [commit e0aca78b](https://github.com/clojure-emacs/cider/commit/e0aca78ba56425e50ea895c5adc7c0331cee0b19).
+
+* [#2593](https://github.com/clojure-emacs/cider/issues/2593): The REPL's initial namespace is now set correctly if configured in another tool (e.g. Leiningen's `:init-ns`).
+
+## 0.21.0 (2019-02-19)
+
+### New features
+
+* The `cider-test-run-*` and `cider-ns-refresh-*` commands are now interruptible by the `cider-interrupt` command.
+* Many commands now stream printed results back to the client incrementally – meaning it's now possible to, for example, interrupt evaluations while their result is being rendered.
+* New option: `cider-repl-init-code`. This is a list of strings containing Clojure code to evaluate when the REPL starts (with bindings for any `set!`-able vars in place). Replaces `cider-print-length` and `cider-print-level`, which are now obsolete.
+* New option: `cider-print-quota`. This is a hard limit on the number of bytes that will be returned by any printing operation. This defaults to one megabyte and can be set to `nil` if no limit is desired.
+
+### Changes
+
+* * Add new defcustom `cider-switch-to-repl-on-insert`: Set to prevent cursor from going to the repl when inserting a form in the repl with the insert-to-repl commands. Replaces obsoleted `cider-switch-to-repl-after-insert-p`
+* **(Breaking)** Upgrade to nREPL 0.6.0. This is now the minimum required version.
+* **(Breaking)** Upgrade to piggieback 0.4.0. This is now the minimum required version.
+* **(Breaking)** Remove `cider.nrepl.middleware.pprint`. All functionality has been replaced by the built-in printing support in nREPL 0.6.
+* Option `cider-repl-scroll-on-output` is now obsolete, and the default REPL behaviour has changed to _not_ recenter the window. The built-in variable `scroll-conservatively` can be set to 101 (either globally or locally in the REPL buffer) to restore the old behaviour. This change has a dramatic positive effect on REPL performance.
+* `cider-pprint-fn` and `cider-pprint-options` are now obsolete, replaced by `cider-print-fn` and `cider-print-options`.
+* `cider-debug-print-options`, `cider-stacktrace-print-options`, and `cider-repl-pretty-print-width` are now all obsolete, replaced by `cider-print-options`.
+* [#2546](https://github.com/clojure-emacs/cider/pull/2546): New defcustom `cider-ns-save-files-on-refresh-modes` to control for which buffers `cider-ns-refresh` should save before refreshing.
+
+### Bug fixes
+
+* Fix values for `cider-preferred-build-tool` variable.
+* Fix value and safe property for `cider-allow-jack-in-without-project` variable.
+* `cider-ns-save-files-on-refresh` will now save any modified buffers visiting files on the classpath, rather than just in the current project.
+* `cider-expected-ns` no longer requires an absolute path as its argument, and now internally handles paths canonically and consistently.
+* Fixed a bug causing REPL output to be inserted after the prompt.
+* Fixed a bug causing `cider-pprint-eval-last-sexp-to-comment` and `cider-pprint-eval-defun-to-comment` to not insert anything.
+* `cider-find-var` now correctly uses a new window when passed a prefix of `-` or a double prefix argument.
+
 ## 0.20.0 (2019-01-14)
 
 ### New features
