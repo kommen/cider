@@ -230,3 +230,16 @@ and <kbd>C-<Return></kbd> send the form off for evaluation.
 
 Note that CIDER writes the history to the file when you kill the REPL
 buffer, which includes invoking `cider-quit`, or when you quit Emacs.
+
+## Set ns in REPL
+
+By default `cider-repl-set-ns` won't require the target ns, just set
+it. That's done with the assumption that you've probably evaluated the
+ns in question already before switching to it (e.g. by doing `C-c C-k`
+in its source file). If you want to change this behaviour (to avoid
+calling `cider-repl-set-ns` and then `(require 'my-ns)` manually), you
+can set:
+
+```el
+(setq cider-repl-require-ns-on-set t)
+```

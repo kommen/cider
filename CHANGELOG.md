@@ -2,11 +2,25 @@
 
 ## master (unreleased)
 
+### New features
+
+* Allow editing of jack in command with prefix or when `cider-edit-jack-in-command` is truthy.
+* New defcustom `cider-repl-require-ns-on-set`: Set it to make cider require the namespace before setting it, when calling `cider-repl-set-ns`.
+* [#2611](https://github.com/clojure-emacs/cider/issues/2611): Add `eval`-based classpath lookup fallback. It's used when cider-nrepl is not present.
+* [#2611](https://github.com/clojure-emacs/cider/issues/2611): Add `eval`-based var info lookup fallback. It's used when cider-nrepl is not present.
+
+### Changes
+
+* `cider-print-options` is now supported by the `pr` option for `cider-print-fn`. The options will now be also used by interactive eval commands that do not use pretty-printing.
+* `spec-list` and `spec-form` requests send the current namespace for alias resolution.
+
 ### Bug fixes
 
 * Stop cursor moving when initialising the CIDER REPL, when `cider-repl-pop-to-buffer-on-connect` is nil. This fixes a bug introduced by [commit e0aca78b](https://github.com/clojure-emacs/cider/commit/e0aca78ba56425e50ea895c5adc7c0331cee0b19).
-
+* [#2577](https://github.com/clojure-emacs/cider/issues/2577): Ensure user friendly error messages if a repl connection is expected but none was found in certain situations.
 * [#2593](https://github.com/clojure-emacs/cider/issues/2593): The REPL's initial namespace is now set correctly if configured in another tool (e.g. Leiningen's `:init-ns`).
+* [#2607](https://github.com/clojure-emacs/cider/pull/2607): Use markers for specifying insertion point for `cider-eval-*-to-comment`commands. This fixes a bug where editing the buffer during a pending evaluation resulted in comments appearing in unintended locations.
+* [#2308](https://github.com/clojure-emacs/cider/issues/2308): Don't rely on the classpath in `cider-library-present-p`. Now it does a `require` instead to check if some library is present or not.
 
 ## 0.21.0 (2019-02-19)
 

@@ -28,6 +28,7 @@
 (require 'map)
 (require 'seq)
 (require 'subr-x)
+(require 'parseedn)
 
 (require 'clojure-mode)
 (require 'spinner)
@@ -121,7 +122,7 @@ command falls back to `clojure-expected-ns' in the absence of an active
 nREPL connection."
   (if (cider-connected-p)
       (let* ((path (file-truename (or path buffer-file-name)))
-             (relpath (thread-last (cider-sync-request:classpath)
+             (relpath (thread-last (cider-classpath-entries)
                         (seq-filter #'file-directory-p)
                         (seq-map (lambda (dir)
                                    (when (file-in-directory-p path dir)
@@ -140,7 +141,7 @@ nREPL connection."
 
 (defun cider-nrepl-op-supported-p (op &optional connection)
   "Check whether the CONNECTION supports the nREPL middleware OP."
-  (nrepl-op-supported-p op (or connection (cider-current-repl))))
+  (nrepl-op-supported-p op (or connection (cider-current-repl nil 'ensure))))
 
 (defvar cider-version)
 (defun cider-ensure-op-supported (op)
@@ -155,7 +156,7 @@ REQUEST is a pair list of the form (\"op\" \"operation\" \"par1-name\"
                                     \"par1\" ... ).
 If CONNECTION is provided dispatch to that connection instead of
 the current connection.  Return the id of the sent message."
-  (nrepl-send-request request callback (or connection (cider-current-repl 'any))))
+  (nrepl-send-request request callback (or connection (cider-current-repl 'any 'ensure))))
 
 (defun cider-nrepl-send-sync-request (request &optional connection abort-on-input)
   "Send REQUEST to the nREPL server synchronously using CONNECTION.
@@ -165,13 +166,13 @@ If ABORT-ON-INPUT is non-nil, the function will return nil
 at the first sign of user input, so as not to hang the
 interface."
   (nrepl-send-sync-request request
-                           (or connection (cider-current-repl 'any))
+                           (or connection (cider-current-repl 'any 'ensure))
                            abort-on-input))
 
 (defun cider-nrepl-send-unhandled-request (request &optional connection)
   "Send REQUEST to the nREPL CONNECTION and ignore any responses.
 Immediately mark the REQUEST as done.  Return the id of the sent message."
-  (let* ((conn (or connection (cider-current-repl 'any)))
+  (let* ((conn (or connection (cider-current-repl 'any 'ensure)))
          (id (nrepl-send-request request #'ignore conn)))
     (with-current-buffer conn
       (nrepl--mark-id-completed id))
@@ -183,7 +184,7 @@ If NS is non-nil, include it in the request.  LINE and COLUMN, if non-nil,
 define the position of INPUT in its buffer.  ADDITIONAL-PARAMS is a plist
 to be appended to the request message.  CONNECTION is the connection
 buffer, defaults to (cider-current-repl)."
-  (let ((connection (or connection (cider-current-repl))))
+  (let ((connection (or connection (cider-current-repl nil 'ensure))))
     (nrepl-request:eval input
                         (if cider-show-eval-spinner
                             (cider-eval-spinner-handler connection callback)
@@ -195,7 +196,7 @@ buffer, defaults to (cider-current-repl)."
 (defun cider-nrepl-sync-request:eval (input &optional connection ns)
   "Send the INPUT to the nREPL CONNECTION synchronously.
 If NS is non-nil, include it in the eval request."
-  (nrepl-sync-request:eval input (or connection (cider-current-repl)) ns))
+  (nrepl-sync-request:eval input (or connection (cider-current-repl nil 'ensure)) ns))
 
 (defcustom cider-print-fn 'pprint
   "Sets the function to use for printing.
@@ -305,11 +306,17 @@ is included in the request if non-nil."
 
 (defun cider--nrepl-pr-request-map ()
   "Map to merge into requests that do not require pretty printing."
-  (map-merge 'list
-             `(("nrepl.middleware.print/print" "cider.nrepl.pprint/pr"
-                "nrepl.middleware.print/stream?" nil))
-             (when cider-print-quota
-               `(("nrepl.middleware.print/quota" ,cider-print-quota)))))
+  (let ((print-options (thread-last cider-print-options
+                         (map-pairs)
+                         (seq-mapcat #'identity)
+                         (apply #'nrepl-dict))))
+    (map-merge 'list
+               `(("nrepl.middleware.print/print" "cider.nrepl.pprint/pr"
+                  "nrepl.middleware.print/stream?" nil))
+               (unless (nrepl-dict-empty-p print-options)
+                 `(("nrepl.middleware.print/options" ,print-options)))
+               (when cider-print-quota
+                 `(("nrepl.middleware.print/quota" ,cider-print-quota))))))
 
 (defun cider--nrepl-content-type-map ()
   "Map to be merged into an eval request to make it use content-types."
@@ -324,7 +331,7 @@ clobber *1/2/3)."
   ;; namespace forms are always evaluated in the "user" namespace
   (nrepl-request:eval input
                       callback
-                      (or connection (cider-current-repl))
+                      (or connection (cider-current-repl nil 'ensure))
                       ns nil nil nil 'tooling))
 
 (defun cider-sync-tooling-eval (input &optional ns connection)
@@ -335,34 +342,15 @@ bindings of the primary eval nREPL session (e.g. this is not going to
 clobber *1/2/3)."
   ;; namespace forms are always evaluated in the "user" namespace
   (nrepl-sync-request:eval input
-                           (or connection (cider-current-repl))
+                           (or connection (cider-current-repl nil 'ensure))
                            ns
                            'tooling))
 
-;; TODO: Add some unit tests and pretty those two functions up.
-;; FIXME: Currently that's broken for group-id with multiple segments (e.g. org.clojure/clojure)
-(defun cider-classpath-libs ()
-  "Return a list of all libs on the classpath."
-  (let ((libs (seq-filter (lambda (cp-entry)
-                            (string-suffix-p ".jar" cp-entry))
-                          (cider-sync-request:classpath)))
-        (dir-sep (if (string-equal system-type "windows-nt") "\\\\" "/")))
-    (thread-last libs
-      (seq-map (lambda (s) (split-string s dir-sep)))
-      (seq-map #'reverse)
-      (seq-map (lambda (l) (reverse (seq-take l 4)))))))
-
-(defun cider-library-present-p (lib)
-  "Check whether LIB is present on the classpath.
-The library is a string of the format \"group-id/artifact-id\"."
-  (let* ((lib (split-string lib "/"))
-         (group-id (car lib))
-         (artifact-id (cadr lib)))
-    (seq-find (lambda (lib)
-                (let ((g (car lib))
-                      (a (cadr lib)))
-                  (and (equal group-id g) (equal artifact-id a))))
-              (cider-classpath-libs))))
+(defun cider-library-present-p (lib-ns)
+  "Check whether LIB-NS is present.
+If a certain well-known ns in a library is present we assume that library
+itself is present."
+  (nrepl-dict-get (cider-sync-tooling-eval (format "(require '%s)" lib-ns)) "value"))
 
 
 ;;; Interrupt evaluation
@@ -375,7 +363,7 @@ The library is a string of the format \"group-id/artifact-id\"."
   "Interrupt any pending evaluations."
   (interactive)
   ;; FIXME: does this work correctly in cljc files?
-  (with-current-buffer (cider-current-repl)
+  (with-current-buffer (cider-current-repl nil 'ensure)
     (let ((pending-request-ids (cider-util--hash-keys nrepl-pending-requests)))
       (dolist (request-id pending-request-ids)
         (nrepl-request:interrupt
@@ -406,12 +394,36 @@ contain a `candidates' key, it is returned as is."
           info)
       var-info)))
 
+(defconst cider-info-form "
+(do
+  (require 'clojure.java.io)
+  (require 'clojure.walk)
+
+  (if-let [var (resolve '%s)]
+    (let [info (meta var)]
+      (-> info
+          (update :ns str)
+          (update :name str)
+          (update :file (comp str clojure.java.io/resource))
+          (assoc :arglists-str (str (:arglists info)))
+          (clojure.walk/stringify-keys)))))
+")
+
+(defun cider-fallback-eval:info (var)
+  "Obtain VAR metadata via a regular eval.
+Used only when the info nREPL middleware is not available."
+  (let* ((response (cider-sync-tooling-eval (format cider-info-form var)))
+         (var-info (nrepl-dict-from-hash (parseedn-read-str (nrepl-dict-get response "value")))))
+    var-info))
+
 (defun cider-var-info (var &optional all)
   "Return VAR's info as an alist with list cdrs.
 When multiple matching vars are returned you'll be prompted to select one,
 unless ALL is truthy."
   (when (and var (not (string= var "")))
-    (let ((var-info (cider-sync-request:info var)))
+    (let ((var-info (if (cider-nrepl-op-supported-p "info")
+                        (cider-sync-request:info var)
+                      (cider-fallback-eval:info var))))
       (if all var-info (cider--var-choice var-info)))))
 
 (defun cider-member-info (class member)
@@ -478,6 +490,16 @@ Optional arguments include SEARCH-NS, DOCS-P, PRIVATES-P, CASE-SENSITIVE-P."
     (cider-nrepl-send-sync-request)
     (nrepl-dict-get "classpath")))
 
+(defun cider-fallback-eval:classpath ()
+  "Return a list of classpath entries using eval."
+  (read (nrepl-dict-get (cider-sync-tooling-eval "(seq (.split (System/getProperty \"java.class.path\") \":\"))") "value")))
+
+(defun cider-classpath-entries ()
+  "Return a list of classpath entries."
+  (if (cider-nrepl-op-supported-p "classpath")
+      (cider-sync-request:classpath)
+    (cider-fallback-eval:classpath)))
+
 (defun cider-sync-request:complete (str context)
   "Return a list of completions for STR using nREPL's \"complete\" op.
 CONTEXT represents a completion context for compliment."
@@ -536,14 +558,16 @@ Optional argument FILTER-REGEX filters specs.  By default, all specs are
 returned."
   (setq filter-regex (or filter-regex ""))
   (thread-first `("op" "spec-list"
-                  "filter-regex" ,filter-regex)
+                  "filter-regex" ,filter-regex
+                  "ns" ,(cider-current-ns))
     (cider-nrepl-send-sync-request)
     (nrepl-dict-get "spec-list")))
 
 (defun cider-sync-request:spec-form (spec)
   "Get SPEC's form from registry."
   (thread-first `("op" "spec-form"
-                  "spec-name" ,spec)
+                  "spec-name" ,spec
+                  "ns" ,(cider-current-ns))
     (cider-nrepl-send-sync-request)
     (nrepl-dict-get "spec-form")))
 
