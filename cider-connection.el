@@ -437,12 +437,13 @@ REPL defaults to the current REPL."
              (classpath-roots (or (process-get proc :cached-classpath-roots)
                                   (let ((cp (thread-last classpath
                                               (seq-filter (lambda (path) (not (string-match-p "\\.jar$" path))))
-                                              (mapcar #'file-name-directory))))
+                                              (mapcar #'file-name-directory)
+                                              (seq-filter #'identity))))
                                     (process-put proc :cached-classpath-roots cp)
                                     cp))))
-        (or (seq-find (lambda (path) (and path (string-prefix-p path file)))
+        (or (seq-find (lambda (path) (string-prefix-p path file))
                       classpath)
-            (seq-find (lambda (path) (and path (string-prefix-p path file)))
+            (seq-find (lambda (path) (string-prefix-p path file))
                       classpath-roots))))))
 
 (defvar cider-sesman-browser-map
