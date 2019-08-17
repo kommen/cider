@@ -45,7 +45,7 @@
 
 (defcustom cider-xref-actions '(("display-doc" . cider-doc-lookup)
                                 ("find-def" . cider--find-var)
-                                ("lookup-on-grimoire" . cider-grimoire-lookup))
+                                ("lookup-on-clojuredocs" . cider-clojuredocs-lookup))
   "Controls the actions to be applied on the symbol found by an xref search.
 The first action key in the list will be selected as default.  If the list
 contains only one action key, the associated action function will be
@@ -94,13 +94,13 @@ the symbol found by the xref search as argument."
       (if-let* ((buffer (and (not (cider--tooling-file-p file))
                              (cider-find-file file))))
           (cider-jump-to buffer (if line
-                                    (cons cider nil)
+                                    (cons line nil)
                                   name)
                          nil)
         (user-error
          (substitute-command-keys
           "Can't find the source because it wasn't defined with `cider-eval-buffer'")))
-    (error "No source location for %s" namel)))
+    (error "No source location for %s" name)))
 
 (declare-function cider-mode "cider-mode")
 

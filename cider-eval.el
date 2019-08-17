@@ -112,6 +112,11 @@ If t, save the file without confirmation."
   :group 'cider
   :package-version '(cider . "0.6.0"))
 
+(defcustom cider-file-loaded-hook nil
+  "List of functions to call when a load file has completed."
+  :type 'hook
+  :group 'cider
+  :package-version '(cider . "0.1.7"))
 
 (defconst cider-output-buffer "*cider-out*")
 
@@ -1033,7 +1038,8 @@ passing arguments."
     (define-key map (kbd "C-c e") #'cider-pprint-eval-last-sexp-to-comment)
     (define-key map (kbd "C-c C-e") #'cider-pprint-eval-last-sexp-to-comment)
     (define-key map (kbd "C-c d") #'cider-pprint-eval-defun-to-comment)
-    (define-key map (kbd "C-c C-d") #'cider-pprint-eval-defun-to-comment)))
+    (define-key map (kbd "C-c C-d") #'cider-pprint-eval-defun-to-comment)
+    map))
 
 (defvar cider-eval-commands-map
   (let ((map (define-prefix-command 'cider-eval-commands-map)))
@@ -1063,12 +1069,15 @@ passing arguments."
     (define-key map (kbd "C-z") #'cider-eval-defun-up-to-point)
     (define-key map (kbd "C-c") #'cider-eval-last-sexp-in-context)
     (define-key map (kbd "C-b") #'cider-eval-sexp-at-point-in-context)
-    (define-key map (kbd "C-f") 'cider-eval-pprint-commands-map)))
+    (define-key map (kbd "C-f") 'cider-eval-pprint-commands-map)
+    map))
 
 (defun cider--file-string (file)
   "Read the contents of a FILE and return as a string."
   (with-current-buffer (find-file-noselect file)
-    (substring-no-properties (buffer-string))))
+    (save-restriction
+      (widen)
+      (substring-no-properties (buffer-string)))))
 
 (defun cider-load-buffer (&optional buffer)
   "Load (eval) BUFFER's file in nREPL.

@@ -67,7 +67,8 @@
   :prefix "cider-"
   :group 'applications
   :link '(url-link :tag "GitHub" "https://github.com/clojure-emacs/cider")
-  :link '(url-link :tag "Online Manual" "https://docs.cider.mx")
+  :link '(url-link :tag "Homepage" "https://cider.mx")
+  :link '(url-link :tag "Documentation" "https://docs.cider.mx")
   :link '(emacs-commentary-link :tag "Commentary" "cider"))
 
 (require 'cider-client)
@@ -130,7 +131,7 @@ version from the CIDER package or library.")
   :package-version '(cider . "0.14.0"))
 
 (defcustom cider-boot-parameters
-  "cider.tasks/nrepl-server -b localhost wait"
+  "repl -s -b localhost wait"
   "Params passed to boot to start an nREPL server via `cider-jack-in'."
   :type 'string
   :group 'cider
@@ -138,10 +139,14 @@ version from the CIDER package or library.")
   :package-version '(cider . "0.9.0"))
 
 (defcustom cider-clojure-cli-command
-  "clojure"
+  (if (and (eq system-type 'windows-nt)
+           (null (executable-find "clojure")))
+      "powershell"
+    "clojure")
   "The command used to execute clojure with tools.deps (requires Clojure 1.9+).
-Don't use clj here, as it doesn't work when spawned from Emacs due to
-it using rlwrap."
+Don't use clj here, as it doesn't work when spawned from Emacs due to it
+using rlwrap.  If on Windows and no \"clojure\" executable is found we
+default to \"powershell\"."
   :type 'string
   :group 'cider
   :safe #'stringp
@@ -383,7 +388,7 @@ Throws an error if PROJECT-TYPE is unknown."
   "List of dependencies where elements are lists of artifact name and version.
 Added to `cider-jack-in-dependencies' when doing `cider-jack-in-cljs'.")
 (put 'cider-jack-in-cljs-dependencies 'risky-local-variable t)
-(cider-add-to-alist 'cider-jack-in-cljs-dependencies "cider/piggieback" "0.4.0")
+(cider-add-to-alist 'cider-jack-in-cljs-dependencies "cider/piggieback" "0.4.1")
 
 (defvar cider-jack-in-dependencies-exclusions nil
   "List of exclusions for jack in dependencies.
@@ -399,7 +404,7 @@ Elements of the list are artifact name and list of exclusions to apply for the a
 (defconst cider-latest-clojure-version "1.10.0"
   "Latest supported version of Clojure.")
 
-(defconst cider-required-middleware-version "0.22.0-beta1"
+(defconst cider-required-middleware-version "0.22.0-beta11"
   "The CIDER nREPL version that's known to work properly with CIDER.")
 
 (defcustom cider-jack-in-auto-inject-clojure nil
@@ -647,12 +652,12 @@ Generally you should not disable this unless you run into some faulty check."
 (defun cider-verify-clojurescript-is-present ()
   "Check whether ClojureScript is present."
   (unless (cider-library-present-p "cljs.core")
-    (user-error "ClojureScript is not available.  See https://docs.cider.mx/en/latest/clojurescript for details")))
+    (user-error "ClojureScript is not available.  See https://docs.cider.mx/cider/basics/clojurescript for details")))
 
 (defun cider-verify-piggieback-is-present ()
   "Check whether the piggieback middleware is present."
   (unless (cider-library-present-p "cider.piggieback")
-    (user-error "Piggieback 0.4.x (aka cider/piggieback) is not available.  See https://docs.cider.mx/en/latest/clojurescript for details")))
+    (user-error "Piggieback 0.4.x (aka cider/piggieback) is not available.  See https://docs.cider.mx/cider/basics/clojurescript for details")))
 
 (defun cider-check-nashorn-requirements ()
   "Check whether we can start a Nashorn ClojureScript REPL."
@@ -668,19 +673,19 @@ Generally you should not disable this unless you run into some faulty check."
   "Check whether we can start a Figwheel ClojureScript REPL."
   (cider-verify-piggieback-is-present)
   (unless (cider-library-present-p "figwheel-sidecar.repl")
-    (user-error "Figwheel-sidecar is not available.  Please check https://docs.cider.mx/en/latest/clojurescript")))
+    (user-error "Figwheel-sidecar is not available.  Please check https://docs.cider.mx/cider/basics/clojurescript")))
 
 (defun cider-check-figwheel-main-requirements ()
   "Check whether we can start a Figwheel ClojureScript REPL."
   (cider-verify-piggieback-is-present)
   (unless (cider-library-present-p "figwheel.main")
-    (user-error "Figwheel-main is not available.  Please check https://docs.cider.mx/en/latest/clojurescript")))
+    (user-error "Figwheel-main is not available.  Please check https://docs.cider.mx/cider/basics/clojurescript")))
 
 (defun cider-check-weasel-requirements ()
   "Check whether we can start a Weasel ClojureScript REPL."
   (cider-verify-piggieback-is-present)
   (unless (cider-library-present-p "weasel.repl.server")
-    (user-error "Weasel in not available.  Please check https://docs.cider.mx/en/latest/clojurescript/#browser-connected-clojurescript-repl")))
+    (user-error "Weasel in not available.  Please check https://docs.cider.mx/cider/basics/clojurescript/#browser-connected-clojurescript-repl")))
 
 (defun cider-check-boot-requirements ()
   "Check whether we can start a Boot ClojureScript REPL."
@@ -709,13 +714,32 @@ Generally you should not disable this unless you run into some faulty check."
   :safe (lambda (s) (or (null s) (stringp s)))
   :package-version '(cider . "0.18.0"))
 
+(defun cider--shadow-parse-builds (hash)
+  "Parses the build names of a shadow-cljs.edn HASH map.
+The default options of `browser-repl' and `node-repl' are also included."
+  (let* ((builds (when (hash-table-p hash)
+                   (gethash :builds hash)))
+         (build-keys (when (hash-table-p builds)
+                       (hash-table-keys builds))))
+    (append build-keys '(browser-repl node-repl))))
+
+(defun cider--shadow-get-builds ()
+  "Extract build names from the shadow-cljs.edn config file in the project root."
+  (let ((shadow-edn (concat (clojure-project-dir) "shadow-cljs.edn")))
+    (when (file-exists-p shadow-edn)
+      (with-temp-buffer
+        (insert-file-contents shadow-edn)
+        (let ((hash (car (parseedn-read '((shadow/env . identity))))))
+          (cider--shadow-parse-builds hash))))))
+
 (defun cider-shadow-select-cljs-init-form ()
   "Generate the init form for a shadow-cljs select-only REPL.
 We have to prompt the user to select a build, that's why this is a command,
 not just a string."
   (let ((form "(do (require '[shadow.cljs.devtools.api :as shadow]) (shadow/nrepl-select %s))")
         (options (or cider-shadow-default-options
-                     (read-from-minibuffer "Select shadow-cljs build (e.g. dev): "))))
+                     (completing-read "Select shadow-cljs build: "
+                                      (cider--shadow-get-builds)))))
     (format form (cider-normalize-cljs-init-options options))))
 
 (defun cider-shadow-cljs-init-form ()
@@ -724,7 +748,8 @@ We have to prompt the user to select a build, that's why
 this is a command, not just a string."
   (let* ((form "(do (require '[shadow.cljs.devtools.api :as shadow]) (shadow/watch %s) (shadow/nrepl-select %s))")
          (options (or cider-shadow-default-options
-                      (read-from-minibuffer "Select shadow-cljs build (e.g. dev): ")))
+                      (completing-read "Select shadow-cljs build: "
+                                       (cider--shadow-get-builds))))
          (build (cider-normalize-cljs-init-options options)))
     (format form build build)))
 
@@ -1163,6 +1188,13 @@ non-nil, don't start if ClojureScript requirements are not met."
   :safe #'booleanp
   :version '(cider . "0.22.0"))
 
+(defun cider--powershell-encode-command (cmd-params)
+  "Base64 encode the powershell command and jack-in CMD-PARAMS for clojure-cli."
+  (let* ((quoted-params (replace-regexp-in-string "\"" "\"\"" cmd-params))
+         (command (format "clojure %s" quoted-params))
+         (utf-16le-command (encode-coding-string command 'utf-16le)))
+    (format "-encodedCommand %s" (base64-encode-string utf-16le-command t))))
+
 (defun cider--update-jack-in-cmd (params)
   "Update :jack-in-cmd key in PARAMS."
   (let* ((params (cider--update-do-prompt params))
@@ -1188,7 +1220,9 @@ non-nil, don't start if ClojureScript requirements are not met."
                           (and (null project-dir)
                                (eq cider-allow-jack-in-without-project 'warn)
                                (y-or-n-p "Are you sure you want to run `cider-jack-in' without a Clojure project? ")))
-                  (let ((cmd (format "%s %s" command-resolved cmd-params)))
+                  (let ((cmd (format "%s %s" command-resolved (if (string-equal command "powershell")
+                                                                  (cider--powershell-encode-command cmd-params)
+                                                                cmd-params))))
                     (plist-put params :jack-in-cmd (if (or cider-edit-jack-in-command
                                                            (plist-get params :edit-jack-in-command))
                                                        (read-string "jack-in command: " cmd t)
@@ -1261,21 +1295,21 @@ canceled the action, signal quit."
  ;;;###autoload
 (defalias 'cider-jack-in #'cider-jack-in-clj)
  ;;;###autoload
-(defalias 'cider-jack-in-clojure #'cider-jack-in-clj)
+(define-obsolete-function-alias 'cider-jack-in-clojure 'cider-jack-in-clj "0.22")
 ;;;###autoload
-(defalias 'cider-jack-in-clojurescript #'cider-jack-in-cljs)
+(define-obsolete-function-alias 'cider-jack-in-clojurescript 'cider-jack-in-cljs "0.22")
 
 ;;;###autoload
 (defalias 'cider-connect #'cider-connect-clj)
 ;;;###autoload
-(defalias 'cider-connect-clojure #'cider-connect-clj)
+(define-obsolete-function-alias 'cider-connect-clojure 'cider-connect-clj "0.22")
 ;;;###autoload
-(defalias 'cider-connect-clojurescript #'cider-connect-cljs)
+(define-obsolete-function-alias 'cider-connect-clojurescript 'cider-connect-cljs "0.22")
 
 ;;;###autoload
-(defalias 'cider-connect-sibling-clojure #'cider-connect-sibling-clj)
+(define-obsolete-function-alias 'cider-connect-sibling-clojure 'cider-connect-sibling-clj "0.22")
 ;;;###autoload
-(defalias 'cider-connect-sibling-clojurescript #'cider-connect-sibling-cljs)
+(define-obsolete-function-alias 'cider-connect-sibling-clojurescript 'cider-connect-sibling-cljs "0.22")
 
 
 ;;; Helpers

@@ -115,6 +115,14 @@ will return nil instead of \"user\"."
         (buffer-local-value 'cider-buffer-ns repl))
       (if no-default nil "user")))
 
+(defun cider-path-to-ns (relpath)
+  "Transform RELPATH to Clojure namespace.
+Remove extension and substitute \"/\" with \".\", \"_\" with \"-\"."
+  (thread-last relpath
+    (file-name-sans-extension)
+    (replace-regexp-in-string "/" ".")
+    (replace-regexp-in-string "_" "-")))
+
 (defun cider-expected-ns (&optional path)
   "Return the namespace string matching PATH, or nil if not found.
 If PATH is nil, use the path to the file backing the current buffer.  The
@@ -132,10 +140,7 @@ nREPL connection."
                                     (< (length a) (length b))))
                         (car))))
         (if relpath
-            (thread-last relpath
-              (file-name-sans-extension)
-              (replace-regexp-in-string "/" ".")
-              (replace-regexp-in-string "_" "-"))
+            (cider-path-to-ns relpath)
           (clojure-expected-ns path)))
     (clojure-expected-ns path)))
 
@@ -478,7 +483,7 @@ Optional arguments include SEARCH-NS, DOCS-P, PRIVATES-P, CASE-SENSITIVE-P."
                       ,@(when docs-p '("docs?" "t"))
                       ,@(when privates-p '("privates?" "t"))
                       ,@(when case-sensitive-p '("case-sensitive?" "t"))
-                      "filter-regexps" ,cider-filtered-namespaces-regexps))))
+                      "exclude-regexps" ,cider-filtered-namespaces-regexps))))
     (if (member "apropos-regexp-error" (nrepl-dict-get response "status"))
         (user-error "Invalid regexp: %s" (nrepl-dict-get response "error-msg"))
       (nrepl-dict-get response "apropos-matches"))))
@@ -581,7 +586,7 @@ returned."
 (defun cider-sync-request:ns-list ()
   "Get a list of the available namespaces."
   (thread-first `("op" "ns-list"
-                  "filter-regexps" ,cider-filtered-namespaces-regexps)
+                  "exclude-regexps" ,cider-filtered-namespaces-regexps)
     (cider-nrepl-send-sync-request)
     (nrepl-dict-get "ns-list")))
 
