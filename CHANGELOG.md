@@ -22,6 +22,8 @@
 * `C-c , C-g` and `C-c C-t C-g` cancel the key chord instead of rerunning the last test. The respective command has been moved to `C-c , C-a`, `C-c , a`, `C-c C-t C-a` and `C-c C-t a`.
 * [#2643](https://github.com/clojure-emacs/cider/issues/2643): **(Breaking)** Stop using the `cider.tasks/nrepl-server` custom task for `cider-jack-in` with Boot.
 * [#2647](https://github.com/clojure-emacs/cider/issues/2647) `cider-repl-require-repl-utils` now loads cljs specific repl utils in cljs buffers.
+* [#2689](https://github.com/clojure-emacs/cider/issues/2689) `cider-load-buffer` now takes an optional `callback` that will override the default `cider-load-file-handler`.
+* [#2689](https://github.com/clojure-emacs/cider/issues/2689) `cider-load-file-handler` now takes an optional `done-handler` lambda that is run once load is complete.
 
 ### Bug fixes
 
@@ -34,6 +36,7 @@
 * [#2541](https://github.com/clojure-emacs/cider/issues/2541): Hook properly CIDER's code completion machinery.
 * [#2659](https://github.com/clojure-emacs/cider/issues/2659): Handle `#shadow/env` reader tags in `cider--shadow-get-builds`.
 * [#2676](https://github.com/clojure-emacs/cider/issues/2676): Widen before `cider--file-string`, to allow `cider-load-buffer` to work on narrowed buffers.
+* Don't disable `cider-mode` until all CIDER sessions have been closed.
 
 ## 0.21.0 (2019-02-19)
 
