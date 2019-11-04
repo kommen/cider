@@ -11,7 +11,7 @@
 ;;         Steve Purcell <steve@sanityinc.com>
 ;; Maintainer: Bozhidar Batsov <bozhidar@batsov.com>
 ;; URL: http://www.github.com/clojure-emacs/cider
-;; Version: 0.22.1-snapshot
+;; Version: 0.24.0-snapshot
 ;; Package-Requires: ((emacs "25") (clojure-mode "5.9") (parseedn "0.1") (pkg-info "0.4") (queue "0.2") (spinner "1.7") (seq "2.16") (sesman "0.3.2"))
 ;; Keywords: languages, clojure, cider
 
@@ -87,12 +87,12 @@
 (require 'seq)
 (require 'sesman)
 
-(defconst cider-version "0.22.1-snapshot"
+(defconst cider-version "0.24.0-snapshot"
   "Fallback version used when it cannot be extracted automatically.
 Normally it won't be used, unless `pkg-info' fails to extract the
 version from the CIDER package or library.")
 
-(defconst cider-codename "São Paulo"
+(defconst cider-codename "Lima"
   "Codename used to denote stable releases.")
 
 (defcustom cider-lein-command
@@ -388,7 +388,7 @@ Throws an error if PROJECT-TYPE is unknown."
   "List of dependencies where elements are lists of artifact name and version.
 Added to `cider-jack-in-dependencies' when doing `cider-jack-in-cljs'.")
 (put 'cider-jack-in-cljs-dependencies 'risky-local-variable t)
-(cider-add-to-alist 'cider-jack-in-cljs-dependencies "cider/piggieback" "0.4.1")
+(cider-add-to-alist 'cider-jack-in-cljs-dependencies "cider/piggieback" "0.4.2")
 
 (defvar cider-jack-in-dependencies-exclusions nil
   "List of exclusions for jack in dependencies.
@@ -404,7 +404,7 @@ Elements of the list are artifact name and list of exclusions to apply for the a
 (defconst cider-latest-clojure-version "1.10.0"
   "Latest supported version of Clojure.")
 
-(defconst cider-required-middleware-version "0.22.3"
+(defconst cider-required-middleware-version "0.23.0-SNAPSHOT"
   "The CIDER nREPL version that's known to work properly with CIDER.")
 
 (defcustom cider-jack-in-auto-inject-clojure nil
@@ -673,30 +673,30 @@ Generally you should not disable this unless you run into some faulty check."
   "Check whether we can start a Figwheel ClojureScript REPL."
   (cider-verify-piggieback-is-present)
   (unless (cider-library-present-p "figwheel-sidecar.repl")
-    (user-error "Figwheel-sidecar is not available.  Please check https://docs.cider.mx/cider/basics/clojurescript")))
+    (user-error "Figwheel-sidecar is not available.  Please check https://docs.cider.mx/cider/basics/clojurescript for details")))
 
 (defun cider-check-figwheel-main-requirements ()
   "Check whether we can start a Figwheel ClojureScript REPL."
   (cider-verify-piggieback-is-present)
   (unless (cider-library-present-p "figwheel.main")
-    (user-error "Figwheel-main is not available.  Please check https://docs.cider.mx/cider/basics/clojurescript")))
+    (user-error "Figwheel-main is not available.  Please check https://docs.cider.mx/cider/basics/clojurescript for details")))
 
 (defun cider-check-weasel-requirements ()
   "Check whether we can start a Weasel ClojureScript REPL."
   (cider-verify-piggieback-is-present)
   (unless (cider-library-present-p "weasel.repl.server")
-    (user-error "Weasel in not available.  Please check https://docs.cider.mx/cider/basics/clojurescript/#browser-connected-clojurescript-repl")))
+    (user-error "Weasel in not available.  Please check https://docs.cider.mx/cider/basics/clojurescript/#browser-connected-clojurescript-repl for details")))
 
 (defun cider-check-boot-requirements ()
   "Check whether we can start a Boot ClojureScript REPL."
   (cider-verify-piggieback-is-present)
   (unless (cider-library-present-p "adzerk.boot-cljs-repl")
-    (user-error "The Boot ClojureScript REPL is not available.  Please check https://github.com/adzerk-oss/boot-cljs-repl/blob/master/README.md")))
+    (user-error "The Boot ClojureScript REPL is not available.  Please check https://github.com/adzerk-oss/boot-cljs-repl/blob/master/README.md for details")))
 
 (defun cider-check-shadow-cljs-requirements ()
   "Check whether we can start a shadow-cljs REPL."
-  (unless (cider-library-present-p "shadow.repl")
-    (user-error "The shadow-cljs ClojureScript REPL is not available")))
+  (unless (cider-library-present-p "shadow.cljs.devtools.api")
+    (user-error "The shadow-cljs ClojureScript REPL is not available.  Please check https://docs.cider.mx/cider/basics/clojurescript for details")))
 
 (defun cider-normalize-cljs-init-options (options)
   "Normalize the OPTIONS string used for initializing a ClojureScript REPL."
@@ -746,12 +746,18 @@ not just a string."
   "Generate the init form for a shadow-cljs REPL.
 We have to prompt the user to select a build, that's why
 this is a command, not just a string."
-  (let* ((form "(do (require '[shadow.cljs.devtools.api :as shadow]) (shadow/watch %s) (shadow/nrepl-select %s))")
+  (let* ((shadow-require "(require '[shadow.cljs.devtools.api :as shadow])")
+         ;; form used for user-defined builds
+         (user-build-form "(do %s (shadow/watch %s) (shadow/nrepl-select %s))")
+         ;; form used for built-in builds like :browser-repl and :node-repl
+         (default-build-form "(do %s (shadow/%s))")
          (options (or cider-shadow-default-options
                       (completing-read "Select shadow-cljs build: "
                                        (cider--shadow-get-builds))))
          (build (cider-normalize-cljs-init-options options)))
-    (format form build build)))
+    (if (member build '(":browser-repl" ":node-repl"))
+        (format default-build-form shadow-require (string-remove-prefix ":" build))
+      (format user-build-form shadow-require build build))))
 
 (defcustom cider-figwheel-main-default-options nil
   "Defines the `figwheel.main/start' options.
@@ -762,23 +768,50 @@ Figwheel for details."
   :safe (lambda (s) (or (null s) (stringp s)))
   :package-version '(cider . "0.18.0"))
 
+(defun cider--figwheel-main-get-builds ()
+  "Extract build names from the <build-id>.cljs.edn config files in the project root."
+  (when-let ((project-dir (clojure-project-dir)))
+    (let ((builds (directory-files project-dir nil ".*\\.cljs\\.edn")))
+      (mapcar (lambda (f) (string-match "^\\(.*\\)\\.cljs\\.edn" f)
+                (match-string 1 f)) builds))))
+
 (defun cider-figwheel-main-init-form ()
   "Produce the figwheel-main ClojureScript init form."
   (let ((form "(do (require 'figwheel.main) (figwheel.main/start %s))")
-        (options (string-trim
-                  (or cider-figwheel-main-default-options
-                      (read-from-minibuffer "Select figwheel-main build (e.g. :dev): ")))))
-    (format form (cider-normalize-cljs-init-options options))))
+        (builds (cider--figwheel-main-get-builds)))
+    (cond
+     (cider-figwheel-main-default-options
+      (format form (cider-normalize-cljs-init-options (string-trim cider-figwheel-main-default-options))))
+
+     (builds
+      (format form (cider-normalize-cljs-init-options (completing-read "Select figwheel-main build: " builds))))
+
+     (t (user-error "No figwheel-main build files (<build-id>.cljs.edn) were found")))))
+
+(defcustom cider-custom-cljs-repl-init-form nil
+  "The form used to start a custom ClojureScript REPL.
+When set it becomes the return value of the `cider-custom-cljs-repl-init-form'
+function, which normally prompts for the init form.
+
+This defcustom is mostly intended for use with .dir-locals.el for
+cases where it doesn't make sense to register a new ClojureScript REPL type."
+  :type 'string
+  :safe (lambda (s) (or (null s) (stringp s)))
+  :package-version '(cider . "0.23.0"))
 
 (defun cider-custom-cljs-repl-init-form ()
-  "Prompt for a form that would start a ClojureScript REPL.
+  "The form used to start a custom ClojureScript REPL.
+Defaults to the value of `cider-custom-cljs-repl-init-form'.
+If it's nil the function will prompt for a form.
 The supplied string will be wrapped in a do form if needed."
-  (let ((form (read-from-minibuffer "Please, provide a form to start a ClojureScript REPL: ")))
-    ;; TODO: We should probably make this more robust (e.g. by using a regexp or
-    ;; parsing the form).
-    (if (string-prefix-p "(do" form)
-        form
-      (format "(do %s)" form))))
+  (or
+   cider-custom-cljs-repl-init-form
+   (let ((form (read-from-minibuffer "Please, provide a form to start a ClojureScript REPL: ")))
+     ;; TODO: We should probably make this more robust (e.g. by using a regexp or
+     ;; parsing the form).
+     (if (string-prefix-p "(do" form)
+         form
+       (format "(do %s)" form)))))
 
 (defvar cider-cljs-repl-types
   '((nashorn "(do (require 'cljs.repl.nashorn) (cider.piggieback/cljs-repl (cljs.repl.nashorn/repl-env)))"

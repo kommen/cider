@@ -129,10 +129,13 @@ Ignores the REPL prompt.  If LOOK-BACK is non-nil, move backwards trying to
 find a symbol if there isn't one at point."
   (or (when-let* ((str (thing-at-point 'symbol)))
         (unless (text-property-any 0 (length str) 'field 'cider-repl-prompt str)
-          (substring-no-properties str)))
+          ;; Remove font-locking and trailing . from constructors like Record.
+          (string-remove-suffix "." (substring-no-properties str))))
       (when look-back
         (save-excursion
           (ignore-errors
+            (when (looking-at "(")
+              (forward-char 1))
             (while (not (looking-at "\\sw\\|\\s_\\|\\`"))
               (forward-sexp -1)))
           (cider-symbol-at-point)))))

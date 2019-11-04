@@ -262,7 +262,7 @@ This cache is stored in the connection buffer.")
          (require-code (cdr (assoc (cider-repl-type current-repl) cider-repl-require-repl-utils-code))))
     (nrepl-send-sync-request
      (lax-plist-put
-      (nrepl--eval-request require-code)
+      (nrepl--eval-request require-code (cider-current-ns))
       "inhibit-cider-middleware" "true")
      current-repl)))
 
@@ -387,6 +387,10 @@ fully initialized."
 ;; You can remove this message with the <M-x cider-repl-clear-help-banner> command.
 ;; You can disable it from appearing on start by setting
 ;; `cider-repl-display-help-banner' to nil.
+;; ======================================================================
+;; Please, consider taking part in the State of CIDER survey
+;; https://forms.gle/Cp6DW2zGUQkh42u38
+;; Your feedback means a lot to us!
 ;; ======================================================================
 "))
 

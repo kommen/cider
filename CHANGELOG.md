@@ -2,6 +2,46 @@
 
 ## master (unreleased)
 
+### New features
+
+* [#2738](https://github.com/clojure-emacs/cider/pull/2738): Add ability to lookup a function symbol when cursor is at the opening paren.
+* [#2735](https://github.com/clojure-emacs/cider/pull/2735): New debugger command `P` to inspect an arbitrary expression, it was previously bound to `p` which now inspects the current value.
+* [#2729](https://github.com/clojure-emacs/cider/pull/2729): New cider inspector command `cider-inspector-def-current-val` lets you define a var with the current inspector value.
+
+### Changes
+
+* [#2731](https://github.com/clojure-emacs/cider/pull/2731): Make the in-buffer debugging menu customizable via `cider-debug-prompt-commands`.
+
+### Bugs fixed
+
+* [#2739](https://github.com/clojure-emacs/cider/pull/2739): Start built-in shadow-cljs build profiles correctly (node-repl, browser-repl).
+* [#2730](https://github.com/clojure-emacs/cider/pull/2730): Require repl utilities into current namespace not just `user` ns.
+* [#2614](https://github.com/clojure-emacs/cider/issues/2614): Fix error highlighting in source buffers for Clojure 1.10.
+* [#2733](https://github.com/clojure-emacs/cider/issues/2733): Restore compatibility with Emacs 25.3.
+
+## 0.23.0 (2019-10-08)
+
+### New features
+
+* New configuration variable `cider-result-overlay-position` determining where debugger and inline eval result overlays should be displayed. Current options are 'at-eol and 'at-point.
+* [#2606](https://github.com/clojure-emacs/cider/pull/2606): Defcustom `cider-path-translations` for translating paths from nREPL messages (useful where a file appears to be somewhere, but it's actually somewhere else).
+* [#2698](https://github.com/clojure-emacs/cider/pull/2689): Infer figwheel builds automatically.
+* New command `cider-clojuredocs-refresh-cache`.
+
+### Changes
+
+* [#2711](https://github.com/clojure-emacs/cider/pull/2711): `cider-selector` has more robust handling for edge cases.
+* [#2572](https://github.com/clojure-emacs/cider/issues/2572): Make it possible to a start a one off ClojureScript REPL without defining a new REPL type.
+* Dynamic cljs completions (via suitable) can be disable by setting `cider-enhanced-cljs-completion-p` to nil.
+
+### Bugs fixed
+
+* [#2715](https://github.com/clojure-emacs/cider/issues/2715): Fix the `shadow-cljs` presence check.
+* [#2705](https://github.com/clojure-emacs/cider/issues/2705): Middleware version check looks at only at the minor version for comparison (when the major version is 0) and ensures a matching major and a minor >= required otherwise.
+* Fixed some bugs related to the new suitable-powered ClojureScript code completion (this was fixed by upgrading the `suitable` used by `cider-nrepl`).
+* Remove a misplaced error message when doing `clojuredocs-lookup`.
+* [#2721](https://github.com/clojure-emacs/cider/issues/2721): Handle properly symbols ending in `.` (e.g. `SomeRecord.`).
+
 ## 0.22.0 (2019-09-01)
 
 ### New features
@@ -23,9 +63,9 @@
 * `spec-list` and `spec-form` requests send the current namespace for alias resolution.
 * `C-c , C-g` and `C-c C-t C-g` cancel the key chord instead of rerunning the last test. The respective command has been moved to `C-c , C-a`, `C-c , a`, `C-c C-t C-a` and `C-c C-t a`.
 * [#2643](https://github.com/clojure-emacs/cider/issues/2643): **(Breaking)** Stop using the `cider.tasks/nrepl-server` custom task for `cider-jack-in` with Boot.
-* [#2647](https://github.com/clojure-emacs/cider/issues/2647) `cider-repl-require-repl-utils` now loads cljs specific repl utils in cljs buffers.
-* [#2689](https://github.com/clojure-emacs/cider/issues/2689) `cider-load-buffer` now takes an optional `callback` that will override the default `cider-load-file-handler`.
-* [#2689](https://github.com/clojure-emacs/cider/issues/2689) `cider-load-file-handler` now takes an optional `done-handler` lambda that is run once load is complete.
+* [#2647](https://github.com/clojure-emacs/cider/issues/2647): `cider-repl-require-repl-utils` now loads cljs specific repl utils in cljs buffers.
+* [#2689](https://github.com/clojure-emacs/cider/issues/2689): `cider-load-buffer` now takes an optional `callback` that will override the default `cider-load-file-handler`.
+* [#2689](https://github.com/clojure-emacs/cider/issues/2689): `cider-load-file-handler` now takes an optional `done-handler` lambda that is run once load is complete.
 
 ### Bug fixes
 
