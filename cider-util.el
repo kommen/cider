@@ -1,7 +1,7 @@
 ;; cider-util.el --- Common utility functions that don't belong anywhere else -*- lexical-binding: t -*-
 
 ;; Copyright © 2012-2013 Tim King, Phil Hagelberg, Bozhidar Batsov
-;; Copyright © 2013-2019 Bozhidar Batsov, Artur Malabarba and CIDER contributors
+;; Copyright © 2013-2020 Bozhidar Batsov, Artur Malabarba and CIDER contributors
 ;;
 ;; Author: Tim King <kingtim@gmail.com>
 ;;         Phil Hagelberg <technomancy@gmail.com>
@@ -510,7 +510,12 @@ restore it properly when going back."
         (if tail (setcdr tail nil))))
     (setq help-xref-stack-item item)))
 
-(defcustom cider-doc-xref-regexp "`\\(.*?\\)`"
+(defcustom cider-doc-xref-regexp
+  (eval-and-compile
+    (rx-to-string
+     `(or (: "`" (group-n 1 (+ (not space))) "`")  ; `var`
+          (: "[[" (group-n 1 (+ (not space))) "]]") ; [[var]]
+          (group-n 1 (regexp ,clojure--sym-regexp) "/" (regexp ,clojure--sym-regexp))))) ;; Fully qualified
   "The regexp used to search Clojure vars in doc buffers."
   :type 'regexp
   :safe #'stringp

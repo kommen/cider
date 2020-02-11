@@ -1,7 +1,7 @@
 ;;; cider-inspector.el --- Object inspector -*- lexical-binding: t -*-
 
-;; Copyright © 2013-2019 Vital Reactor, LLC
-;; Copyright © 2014-2019 Bozhidar Batsov and CIDER contributors
+;; Copyright © 2013-2020 Vital Reactor, LLC
+;; Copyright © 2014-2020 Bozhidar Batsov and CIDER contributors
 
 ;; Author: Ian Eslick <ian@vitalreactor.com>
 ;;         Bozhidar Batsov <bozhidar@batsov.com>
@@ -408,7 +408,7 @@ If ARG is negative, move forwards."
                      when value
                      return (list property value)))))
     (or (funcall find-property (point))
-        (funcall find-property (1- (point))))))
+        (funcall find-property (max (point-min) (1- (point)))))))
 
 (defun cider-inspector-operate-on-point ()
   "Invoke the command for the text at point.

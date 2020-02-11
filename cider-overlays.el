@@ -1,6 +1,6 @@
 ;;; cider-overlays.el --- Managing CIDER overlays  -*- lexical-binding: t; -*-
 
-;; Copyright © 2015-2019 Bozhidar Batsov, Artur Malabarba and CIDER contributors
+;; Copyright © 2015-2020 Bozhidar Batsov, Artur Malabarba and CIDER contributors
 
 ;; Author: Artur Malabarba <bruce.connor.am@gmail.com>
 
@@ -233,7 +233,7 @@ overlay."
             (setq display-string
                   (concat (substring display-string 0 (* 3 (window-width)))
                           (substitute-command-keys
-                           "...\nResult truncated. Type `\\[cider-inspect-last-result]' to inspect it."))))
+                           "...\nResult truncated. Type `p' to inspect it."))))
           ;; Create the result overlay.
           (setq o (apply #'cider--make-overlay
                          beg end type

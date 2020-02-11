@@ -23,8 +23,7 @@ debugging mode and will prompt you for what to do next. You can remove
 the instrumentation by evaluating the form again normally, using
 kbd:[C-M-x].
 
-You can also insert a breakpoint manually into any code
-manually by placing `#break` in front of the form where you want the
+You can also insert a breakpoint manually into any code by placing `#break` in front of the form where you want the
 breakpoint to trigger and then evaluating the form with
 kbd:[C-M-x]. When execution reaches the form after the `#break`,
 you'll be dropped into the debugger.
@@ -197,6 +196,41 @@ for the condition in the minibuffer and insert the appropriate `#dbg`
 plus metadata annotation in your code. Note that you'll have to delete
 this annotation by hand; you cannot simply use kbd:[C-M-x] as you
 can to un-instrument kbd:[C-u C-M-x].
+
+== Caveats
+
+Due to the way the debugger is currently implemented there are some
+limitations when it comes to certain forms. Set literals are currently
+not instrumented at all. Map literals are currently only instrumented
+if they are small or the keys have some natural order. For example the
+following expression won't be instrumented.
+
+[source,clojure]
+----
+#dbg (count {:foo 2 :bar (inc 4) "foo" 6 "bar" 8 9
+             10 11 12 13 14 15 (inc 16) 17 (inc 18)})
+----
+
+Another construct where the debugger is currently limited is `loop`/`recur`.
+As `recur` always has to appear in a tail-position inside a `loop` or a `fn`
+and the debugger uses macros to interleave breakpoints in the forms it
+*might* happen that a `recur` no longer appears in a tail position. In that
+case we have to avoid setting up the breakpoint. An example of such a case
+is:
+
+[source,clojure]
+----
+(loop [i 0]
+  #break
+  (when (< i 10)
+    (println i)
+    (recur (inc i))))
+----
+
+Here the breakpoint is exactly in front of a form that contains as last expression
+a `recur` which is not wrapped in a loop. Currently this breakpoint has no
+effect. This does not mean you can not use the debugger with `loop`, it just means
+you have to set your debug statements more carefully.
 
 == Debugger Internals
 

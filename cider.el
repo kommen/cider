@@ -1,7 +1,7 @@
 ;;; cider.el --- Clojure Interactive Development Environment that Rocks -*- lexical-binding: t -*-
 
 ;; Copyright © 2012-2013 Tim King, Phil Hagelberg, Bozhidar Batsov
-;; Copyright © 2013-2019 Bozhidar Batsov, Artur Malabarba and CIDER contributors
+;; Copyright © 2013-2020 Bozhidar Batsov, Artur Malabarba and CIDER contributors
 ;;
 ;; Author: Tim King <kingtim@gmail.com>
 ;;         Phil Hagelberg <technomancy@gmail.com>
@@ -401,10 +401,10 @@ Elements of the list are artifact name and list of exclusions to apply for the a
 (defconst cider-minimum-clojure-version "1.8.0"
   "Minimum supported version of Clojure.")
 
-(defconst cider-latest-clojure-version "1.10.0"
+(defconst cider-latest-clojure-version "1.10.1"
   "Latest supported version of Clojure.")
 
-(defconst cider-required-middleware-version "0.23.0-SNAPSHOT"
+(defconst cider-required-middleware-version "0.24.0-SNAPSHOT"
   "The CIDER nREPL version that's known to work properly with CIDER.")
 
 (defcustom cider-jack-in-auto-inject-clojure nil
@@ -833,7 +833,7 @@ The supplied string will be wrapped in a do form if needed."
   "A list of supported ClojureScript REPLs.
 
 For each one we have its name, the form we need to evaluate in a Clojure
-REPL to start the ClojureScript REPL and functions to very their requirements.
+REPL to start the ClojureScript REPL and functions to verify their requirements.
 
 The form should be either a string or a function producing a string.")
 

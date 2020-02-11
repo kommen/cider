@@ -1,6 +1,6 @@
 ;;; cider-client.el --- A layer of abstraction above low-level nREPL client code. -*- lexical-binding: t -*-
 
-;; Copyright © 2013-2019 Bozhidar Batsov
+;; Copyright © 2013-2020 Bozhidar Batsov
 ;;
 ;; Author: Bozhidar Batsov <bozhidar@batsov.com>
 
@@ -156,7 +156,6 @@ nREPL connection."
   "Check whether the CONNECTION supports the nREPL middleware OP."
   (nrepl-op-supported-p op (or connection (cider-current-repl nil 'ensure))))
 
-(defvar cider-version)
 (defun cider-ensure-op-supported (op)
   "Check for support of middleware op OP.
 Signal an error if it is not supported."
@@ -503,9 +502,24 @@ Optional arguments include SEARCH-NS, DOCS-P, PRIVATES-P, CASE-SENSITIVE-P."
     (cider-nrepl-send-sync-request)
     (nrepl-dict-get "classpath")))
 
+(defun cider--get-abs-path (path project)
+  "Resolve PATH to an absolute path relative to PROJECT.
+Do nothing if PATH is already absolute."
+  (if (not (file-name-absolute-p path))
+      (expand-file-name path project)
+    path))
+
 (defun cider-fallback-eval:classpath ()
-  "Return a list of classpath entries using eval."
-  (read (nrepl-dict-get (cider-sync-tooling-eval "(seq (.split (System/getProperty \"java.class.path\") \":\"))") "value")))
+  "Return a list of classpath entries using eval.
+
+Sometimes the classpath contains entries like src/main and we need to
+resolve those to absolute paths."
+  (let ((classpath (thread-first "(seq (.split (System/getProperty \"java.class.path\") \":\"))"
+                     (cider-sync-tooling-eval)
+                     (nrepl-dict-get "value")
+                     read))
+        (project (clojure-project-dir)))
+    (mapcar (lambda (path) (cider--get-abs-path path project)) classpath)))
 
 (defun cider-classpath-entries ()
   "Return a list of classpath entries."
