@@ -4,7 +4,20 @@
 
 ### New features
 
-* [#2787](https://github.com/clojure-emacs/cider/issues/2787): Fix nrepl process naming collision when using `nrepl-hide-special-buffers`
+* [#2800](https://github.com/clojure-emacs/cider/pull/2800): Add support for force-out debugger command.
+
+### Changes
+
+* [#2617](https://github.com/clojure-emacs/cider/pull/2617): Add menu bar entry for `Insert last sexp in REPL and eval` under `CIDER Eval`.
+
+### Bugs fixed
+
+* [#2807](https://github.com/clojure-emacs/cider/pull/2807): Fix require-repl-utils for shadow-cljs repls
+
+## 0.24.0 (2020-02-15)
+
+### New features
+
 * [#2744](https://github.com/clojure-emacs/cider/pull/2744): Add startup commands to repl banner.
 * [#2499](https://github.com/clojure-emacs/cider/issues/2499): Add `cider-jump-to-pop-to-buffer-actions`.
 * [#2738](https://github.com/clojure-emacs/cider/pull/2738): Add ability to lookup a function symbol when cursor is at the opening paren.
@@ -18,6 +31,7 @@
 
 ### Bugs fixed
 
+* [#2787](https://github.com/clojure-emacs/cider/issues/2787): Fix nrepl process naming collision when using `nrepl-hide-special-buffers`.
 * [#2739](https://github.com/clojure-emacs/cider/pull/2739): Start built-in shadow-cljs build profiles correctly (node-repl, browser-repl).
 * [#2730](https://github.com/clojure-emacs/cider/pull/2730): Require repl utilities into current namespace not just `user` ns.
 * [#2614](https://github.com/clojure-emacs/cider/issues/2614): Fix error highlighting in source buffers for Clojure 1.10.
